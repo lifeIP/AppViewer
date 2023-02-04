@@ -1,0 +1,3 @@
+Steam
+C:\\Program Files (x86)\\Steam\\steam.exe
+C:\\Users\\molok\\Desktop\\ICONS\\ICONS\\test_\\dist\\Steam.png
