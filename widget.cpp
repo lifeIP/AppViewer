@@ -15,18 +15,19 @@ Widget::Widget(QWidget *parent) :
     setMinimumHeight(480);
 
     /// Настраиваем интерфейс
-    m_gridLayout = new QGridLayout(this);
+    m_gridLayout = new QGridLayout(this); 
     m_imagesListView = new QListView(this);
+    m_push_button = new QPushButton(this);
 
     // Создадим модель данных для списка изображений
     m_imagesModel = new QStandardItemModel(m_imagesListView);
     m_imagesListView->setModel(m_imagesModel);  // Установим модель во вьюшку для превью изображений
+
     m_gridLayout->addWidget(m_imagesListView);
+    m_gridLayout->addWidget(m_push_button);
     connect(m_imagesListView, &QListView::clicked, this, &Widget::onImagesListViewClicked);
     load_last_version("C:\\Users\\molok\\Desktop\\ICONS\\ICONS\\test_\\dist\\save_data.txt");
 }
-
-
 
 void Widget::load_last_version(const std::string& filename){
 
@@ -40,7 +41,7 @@ void Widget::load_last_version(const std::string& filename){
             getline(file, exe_info.exe_name);
             getline(file, exe_info.exe_icon);
             getline(file, exe_info.exe_path);
-
+            if(exe_info.exe_name == "") break;
             QPixmap pixmap(exe_info.exe_icon.c_str());
             auto hm = new QStandardItem(QIcon(pixmap), exe_info.exe_name.c_str());
             hm->setEditable(0);
@@ -54,7 +55,7 @@ void Widget::load_last_version(const std::string& filename){
     }
 }
 
-void Widget::save_last_version(const std::string& filename){//Is in development
+void Widget::save_last_version(const std::string& filename){
     std::ofstream file;
     file.open (filename);
     if(file.is_open()){
@@ -62,7 +63,6 @@ void Widget::save_last_version(const std::string& filename){//Is in development
             file << m_exe_info.at(i).exe_name << "\n" <<
                     m_exe_info.at(i).exe_icon << "\n" <<
                     m_exe_info.at(i).exe_path << "\n";
-
         }
         file.close();
     }
@@ -77,21 +77,10 @@ void Widget::save_last_version(const std::string& filename){//Is in development
 //Is in development&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 
-
-
-
-
-
-
 //Is in development&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 
 
-
-Widget::~Widget()
-{
-
-}
 
 void Widget::dragEnterEvent(QDragEnterEvent *event)
 {
