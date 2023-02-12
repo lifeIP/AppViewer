@@ -13,7 +13,11 @@
 #include <QStandardItemModel>
 #include <QCloseEvent>
 #include <QPushButton>
+#include <QMenuBar>
+#include <QList>
+#include <QThread>
 
+#include "get_icon.h"
 #include <vector>
 
 class Widget : public QWidget
@@ -22,7 +26,7 @@ class Widget : public QWidget
 
 public:
     explicit Widget(QWidget *parent = nullptr);
-
+    ~Widget();
     // Метод события перетаскивания
     virtual void dragEnterEvent(QDragEnterEvent* event) override;
     // Метод события отпускания объекта с данными
@@ -41,20 +45,26 @@ public:
         std::string exe_icon;
     };
     //-------------------------------------------------------------------------------------------
-
-
 private slots:
-    // Слот для обработки кликов по элементам списка
-    void onImagesListViewClicked(const QModelIndex& index);
 
-    void closeEvent (QCloseEvent *event);
+    void closeEvent (QCloseEvent *event) override;
+
+    bool eventFilter(QObject *obj, QEvent *event) override;
+
+    void slotRemoveRecord();
+    void slotEditRecord();
+
 
 private:
+
+    QMenuBar*               m_menu_bar;
     QPushButton*            m_push_button;
     QListView*              m_imagesListView;   // Список с изображениями
     QGridLayout*            m_gridLayout;       // Сетка для интерфейса
     QStandardItemModel*     m_imagesModel;      // Модель данных с изображениями
     std::vector<exe_info>   m_exe_info;
+    QThread                 m_thread_0;
+    get_icon                m_GetIcon;
 };
 
 #endif // WIDGET_H

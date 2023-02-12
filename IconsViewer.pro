@@ -26,13 +26,19 @@ CONFIG += c++11
 
 SOURCES += \
         main.cpp \
-        widget.cpp
+        widget.cpp \
+    get_icon.cpp
 
 HEADERS += \
-        widget.h
+        widget.h \
+    get_icon.h
 
 FORMS += \
         widget.ui
+
+LIBS += C:\qt\Qt5.12.2\Tools\mingw730_32\i686-w64-mingw32\lib\libws2_32.a
+LIBS += C:\qt\Qt5.12.2\Tools\mingw730_64\x86_64-w64-mingw32\lib\libws2_32.a
+
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

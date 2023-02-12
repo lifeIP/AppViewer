@@ -3,9 +3,14 @@
 #include "QListWidgetItem"
 
 #include <QMessageBox>
+#include <QDebug>
 
+#include <ctime>
 #include <fstream>
-#include <vector>
+#include <string>
+#include <iostream>
+
+#include "get_icon.h"
 
 Widget::Widget(QWidget *parent) :
     QWidget(parent)
@@ -14,20 +19,120 @@ Widget::Widget(QWidget *parent) :
     setMinimumWidth(640);
     setMinimumHeight(480);
 
-    /// Настраиваем интерфейс
+    // Инициализация виджетов
     m_gridLayout = new QGridLayout(this); 
     m_imagesListView = new QListView(this);
     m_push_button = new QPushButton(this);
+    m_menu_bar = new QMenuBar(this);
 
-    // Создадим модель данных для списка изображений
+
+    // Настройка внешнего вида меню
+    m_menu_bar->addMenu("Title");
+
+
+    // Создание модели данных для списка
     m_imagesModel = new QStandardItemModel(m_imagesListView);
     m_imagesListView->setModel(m_imagesModel);  // Установим модель во вьюшку для превью изображений
 
+
+    // Помещаем в сетку виджеты
+    m_gridLayout->addWidget(m_menu_bar);
     m_gridLayout->addWidget(m_imagesListView);
     m_gridLayout->addWidget(m_push_button);
-    connect(m_imagesListView, &QListView::clicked, this, &Widget::onImagesListViewClicked);
-    load_last_version("C:\\Users\\molok\\Desktop\\ICONS\\ICONS\\test_\\dist\\save_data.txt");
+
+    // Инициализируем разные события
+    qApp->installEventFilter(this); // Запускаает фильтр событий, нужный для eventFilter
+
+    connect(&m_thread_0, &QThread::started,   &m_GetIcon,  &get_icon::run);
+    connect(&m_GetIcon,  &get_icon::finished, &m_thread_0, &QThread::terminate);
+    m_GetIcon.moveToThread(&m_thread_0);
+
+
+    /// запуск потока (тест)
+    m_thread_0.start();
+    /// запуск потока (тест)
+    //connect(m_imagesListView, &QListView::clicked, this, &Widget::);// Связывает событие и его последствия
+
+    load_last_version("C:\\Users\\molok\\Desktop\\ICONS\\ICONS\\test_\\icons_info.iof");
+
 }
+
+Widget::~Widget()
+{
+}
+
+
+
+
+
+//Is in development&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+
+
+void Widget::slotEditRecord(){
+
+}
+
+
+
+bool Widget::eventFilter(QObject *obj, QEvent *event)
+{
+
+    if (obj == m_imagesListView->viewport() && event->type() == QEvent::MouseButtonDblClick)
+    {
+        QMouseEvent *ev = static_cast<QMouseEvent *>(event);
+        if (ev->buttons() & Qt::LeftButton)
+        {
+            qDebug()<< "double left clicked" << ev->pos();
+            qDebug()<<  m_imagesListView->indexAt(ev->pos()).data();
+        }
+    }
+    else if (obj == m_imagesListView->viewport() && event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent *ev = static_cast<QMouseEvent *>(event);
+        if (ev->buttons() & Qt::RightButton)
+        {
+            /* Создаем объект контекстного меню */
+            QMenu * menu = new QMenu(this);
+            /* Создаём действия для контекстного меню */
+            QAction * editDevice = new QAction("Редактировать", this);
+            QAction * deleteDevice = new QAction("Удалить", this);
+
+            /* Устанавливаем действия в меню */
+            menu->addAction(editDevice);
+            menu->addAction(deleteDevice);
+
+            // Связываем событие и его последствия
+            //connect(editDevice, SIGNAL(triggered()), this, SLOT(slotEditRecord()));
+            connect(deleteDevice, SIGNAL(triggered()), this, SLOT(slotRemoveRecord()));
+
+            /* Вызываем контекстное меню */
+            menu->popup(m_imagesListView->viewport()->mapToGlobal(ev->pos()));
+            menu->exec();
+        }
+    }
+
+    return QObject::eventFilter(obj, event);
+}
+
+
+
+//Is in development&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void Widget::load_last_version(const std::string& filename){
 
@@ -41,10 +146,13 @@ void Widget::load_last_version(const std::string& filename){
             getline(file, exe_info.exe_name);
             getline(file, exe_info.exe_icon);
             getline(file, exe_info.exe_path);
+
             if(exe_info.exe_name == "") break;
+
             QPixmap pixmap(exe_info.exe_icon.c_str());
             auto hm = new QStandardItem(QIcon(pixmap), exe_info.exe_name.c_str());
             hm->setEditable(0);
+
             m_imagesModel->appendRow(hm);
             m_exe_info.push_back(exe_info);
         }
@@ -71,16 +179,23 @@ void Widget::save_last_version(const std::string& filename){
     }
 }
 
-
-
-
-//Is in development&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
-
-//Is in development&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
-
-
+void Widget::slotRemoveRecord(){
+    int row_id = m_imagesListView->selectionModel()->currentIndex().row();
+    if(row_id >= 0){
+        qDebug() << "row_id" << m_imagesListView->selectionModel()->currentIndex().row();
+        if (QMessageBox::warning(this, "Удаление записи",
+                              "Вы уверены, что хотите удалить эту запись?",
+                              QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+        {
+            m_exe_info.erase(m_exe_info.begin() + row_id);
+            qDebug() << "row_id_in" << m_imagesListView->selectionModel()->currentIndex().row();
+            m_imagesModel->removeRows(row_id, 1);
+        }
+        else {
+            return;
+        }
+    }
+}
 
 void Widget::dragEnterEvent(QDragEnterEvent *event)
 {
@@ -95,20 +210,28 @@ void Widget::dropEvent(QDropEvent *event)
     QString filePath = event->mimeData()->urls()[0].toLocalFile();
     // Создаём изображение
     QPixmap pixmap(filePath);
-    // Помещаем его в область скроллинга через QLabel
+
+    Widget::exe_info exe_info;
+    exe_info.exe_path = filePath.toStdString();
+    exe_info.exe_icon = filePath.toStdString();
+    time_t now = time(0);
+    exe_info.exe_name = std::to_string(now) + ".png";
+
+    m_GetIcon.setPATH(exe_info.exe_path.c_str());
+    m_GetIcon.setNAME(exe_info.exe_name.c_str());
+    m_GetIcon.setRunnung(1);
+    m_thread_0.start();
+
+    m_exe_info.push_back(exe_info);
 
     // Добавляем элемент в список
-    m_imagesModel->appendRow(new QStandardItem(QIcon(pixmap), filePath));
-}
-
-void Widget::onImagesListViewClicked(const QModelIndex &index)
-{
-    // Когда кликаем по элементу в списке, то забираем путь к файлу
-    QPixmap pixmap(m_imagesModel->data(index).toString());
+    m_imagesModel->appendRow(new QStandardItem(QIcon(pixmap), exe_info.exe_name.c_str()));
 }
 
 void Widget::closeEvent (QCloseEvent *event)
 {
-    save_last_version("C:\\Users\\molok\\Desktop\\ICONS\\ICONS\\test_\\dist\\save_data.txt");
+    m_GetIcon.setRunnung(0);
+    m_thread_0.terminate();
+    save_last_version("C:\\Users\\molok\\Desktop\\ICONS\\ICONS\\test_\\icons_info.iof");
     event->accept();
 }
