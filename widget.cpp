@@ -1,16 +1,20 @@
 #include "widget.h"
 #include "ui_widget.h"
 #include "QListWidgetItem"
+#include "pyapi.h"
+
 
 #include <QMessageBox>
 #include <QDebug>
+#include <QFileInfo>
+#include <QDir>
 
 #include <ctime>
 #include <fstream>
 #include <string>
 #include <iostream>
 
-#include "get_icon.h"
+#define CURRENT_DIRECTORY(fileName) (QString("C:\\Users\\molok\\Desktop\\ICONS\\ICONS\\test_\\") + QString(fileName))
 
 Widget::Widget(QWidget *parent) :
     QWidget(parent)
@@ -43,36 +47,30 @@ Widget::Widget(QWidget *parent) :
     // Инициализируем разные события
     qApp->installEventFilter(this); // Запускаает фильтр событий, нужный для eventFilter
 
-    connect(&m_thread_0, &QThread::started,   &m_GetIcon,  &get_icon::run);
-    connect(&m_GetIcon,  &get_icon::finished, &m_thread_0, &QThread::terminate);
+    connect(&m_thread_0, &QThread::started,   &m_GetIcon,  &PyAPI::run);
+    connect(&m_GetIcon,  &PyAPI::finished, &m_thread_0, &QThread::terminate);
     m_GetIcon.moveToThread(&m_thread_0);
 
 
     /// запуск потока (тест)
     m_thread_0.start();
+
     /// запуск потока (тест)
     //connect(m_imagesListView, &QListView::clicked, this, &Widget::);// Связывает событие и его последствия
 
-    load_last_version("C:\\Users\\molok\\Desktop\\ICONS\\ICONS\\test_\\icons_info.iof");
+    load_last_version(CURRENT_DIRECTORY("icons_info.iof").toStdString());
 
 }
+
 
 Widget::~Widget()
 {
 }
 
 
-
-
-
-//Is in development&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
-
-
 void Widget::slotEditRecord(){
 
 }
-
 
 
 bool Widget::eventFilter(QObject *obj, QEvent *event)
@@ -115,25 +113,6 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
 }
 
 
-
-//Is in development&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void Widget::load_last_version(const std::string& filename){
 
     std::ifstream file;
@@ -142,6 +121,7 @@ void Widget::load_last_version(const std::string& filename){
     {
         while (!file.eof()) {
             Widget::exe_info exe_info;
+
 
             getline(file, exe_info.exe_name);
             getline(file, exe_info.exe_icon);
@@ -163,6 +143,7 @@ void Widget::load_last_version(const std::string& filename){
     }
 }
 
+
 void Widget::save_last_version(const std::string& filename){
     std::ofstream file;
     file.open (filename);
@@ -178,6 +159,7 @@ void Widget::save_last_version(const std::string& filename){
         // тут происходит что-то для логирования
     }
 }
+
 
 void Widget::slotRemoveRecord(){
     int row_id = m_imagesListView->selectionModel()->currentIndex().row();
@@ -197,41 +179,48 @@ void Widget::slotRemoveRecord(){
     }
 }
 
+
 void Widget::dragEnterEvent(QDragEnterEvent *event)
 {
     // Обязательно необходимо допустить событие переноса данных в область окна приложения
     event->accept();
 }
 
+
 void Widget::dropEvent(QDropEvent *event)
 {
     // Когда отпускаем файл в область приложения,
     // то забираем путь к файлу из MIME данных
+    //QString filePath = event->mimeData()->urls()[0].toLocalFile();
     QString filePath = event->mimeData()->urls()[0].toLocalFile();
-    // Создаём изображение
-    QPixmap pixmap(filePath);
 
     Widget::exe_info exe_info;
     exe_info.exe_path = filePath.toStdString();
-    exe_info.exe_icon = filePath.toStdString();
-    time_t now = time(0);
-    exe_info.exe_name = std::to_string(now) + ".png";
+
+    QString fileName = QFileInfo(filePath).fileName();
+    QString tmp = fileName.mid(0, fileName.size() - 5);
+    exe_info.exe_name = tmp.toStdString();
+
+    tmp = CURRENT_DIRECTORY(tmp) + QString(".png");
+    exe_info.exe_icon = tmp.toStdString();
 
     m_GetIcon.setPATH(exe_info.exe_path.c_str());
-    m_GetIcon.setNAME(exe_info.exe_name.c_str());
+    m_GetIcon.setNAME(exe_info.exe_icon.c_str());
     m_GetIcon.setRunnung(1);
-    m_thread_0.start();
 
     m_exe_info.push_back(exe_info);
+
+    QPixmap pixmap(exe_info.exe_icon.c_str());
 
     // Добавляем элемент в список
     m_imagesModel->appendRow(new QStandardItem(QIcon(pixmap), exe_info.exe_name.c_str()));
 }
 
+
 void Widget::closeEvent (QCloseEvent *event)
 {
     m_GetIcon.setRunnung(0);
     m_thread_0.terminate();
-    save_last_version("C:\\Users\\molok\\Desktop\\ICONS\\ICONS\\test_\\icons_info.iof");
+    save_last_version(CURRENT_DIRECTORY("icons_info.iof").toStdString());
     event->accept();
 }

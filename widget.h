@@ -17,7 +17,7 @@
 #include <QList>
 #include <QThread>
 
-#include "get_icon.h"
+#include "pyapi.h"
 #include <vector>
 
 class Widget : public QWidget
@@ -64,7 +64,7 @@ private:
     QStandardItemModel*     m_imagesModel;      // Модель данных с изображениями
     std::vector<exe_info>   m_exe_info;
     QThread                 m_thread_0;
-    get_icon                m_GetIcon;
+    PyAPI                   m_GetIcon;
 };
 
 #endif // WIDGET_H

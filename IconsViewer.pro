@@ -25,13 +25,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
-        main.cpp \
-        widget.cpp \
-    get_icon.cpp
+    pyapi.cpp \
+    main.cpp \
+    widget.cpp
 
 HEADERS += \
-        widget.h \
-    get_icon.h
+    pyapi.h \
+    widget.h
 
 FORMS += \
         widget.ui
@@ -44,3 +44,6 @@ LIBS += C:\qt\Qt5.12.2\Tools\mingw730_64\x86_64-w64-mingw32\lib\libws2_32.a
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    resource.qrc
