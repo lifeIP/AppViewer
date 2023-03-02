@@ -1,6 +1,6 @@
 #-------------------------------------------------
 #
-# Project created by QtCreator 2023-02-03T12:34:05
+# Project created by QtCreator 2023-03-02T20:56:17
 #
 #-------------------------------------------------
 
@@ -25,25 +25,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
-    pyapi.cpp \
-    main.cpp \
-    widget.cpp
+        main.cpp \
+        widget.cpp
 
 HEADERS += \
-    pyapi.h \
-    widget.h
+        widget.h \
+    constants.h
 
 FORMS += \
         widget.ui
-
-LIBS += C:\qt\Qt5.12.2\Tools\mingw730_32\i686-w64-mingw32\lib\libws2_32.a
-LIBS += C:\qt\Qt5.12.2\Tools\mingw730_64\x86_64-w64-mingw32\lib\libws2_32.a
-
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
-
-RESOURCES += \
-    resource.qrc

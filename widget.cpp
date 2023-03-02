@@ -1,11 +1,10 @@
 #include "widget.h"
 #include "ui_widget.h"
-#include "QListWidgetItem"
-#include "pyapi.h"
+#include "constants.h"
 
-
-#include <QMessageBox>
 #include <QDebug>
+#include <QFileIconProvider>
+#include <QMessageBox>
 #include <QFileInfo>
 #include <QDir>
 
@@ -14,8 +13,6 @@
 #include <string>
 #include <iostream>
 
-#define CURRENT_DIRECTORY(fileName) (QString("C:\\Users\\molok\\Desktop\\ICONS\\ICONS\\test_\\") + QString(fileName))
-
 Widget::Widget(QWidget *parent) :
     QWidget(parent)
 {
@@ -23,8 +20,8 @@ Widget::Widget(QWidget *parent) :
     setMinimumWidth(640);
     setMinimumHeight(480);
 
-    // Инициализация виджетов
-    m_gridLayout = new QGridLayout(this); 
+    // Инициа лизация виджетов
+    m_gridLayout = new QGridLayout(this);
     m_imagesListView = new QListView(this);
     m_push_button = new QPushButton(this);
     m_menu_bar = new QMenuBar(this);
@@ -47,19 +44,8 @@ Widget::Widget(QWidget *parent) :
     // Инициализируем разные события
     qApp->installEventFilter(this); // Запускаает фильтр событий, нужный для eventFilter
 
-    connect(&m_thread_0, &QThread::started,   &m_GetIcon,  &PyAPI::run);
-    connect(&m_GetIcon,  &PyAPI::finished, &m_thread_0, &QThread::terminate);
-    m_GetIcon.moveToThread(&m_thread_0);
-
-
-    /// запуск потока (тест)
-    m_thread_0.start();
-
-    /// запуск потока (тест)
-    //connect(m_imagesListView, &QListView::clicked, this, &Widget::);// Связывает событие и его последствия
-
-    load_last_version(CURRENT_DIRECTORY("icons_info.iof"));
-
+    //connect( drag, SIGNAL(destroyed()), this, SLOT(dragDestroyed()));
+    loadLastVersion(FinalFilePath("icons_info.iof"));
 }
 
 
@@ -118,14 +104,14 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
 }
 
 
-void Widget::load_last_version(const QString& filename){
+void Widget::loadLastVersion(const QString &filename){
 
     QFile file(filename);
     if(!file.open(QIODevice::ReadOnly | QIODevice::Text)){
         return;
     }
     while (!file.atEnd()) {
-        Widget::exe_info exe_info;
+        Widget::exeInfo exe_info;
 
         exe_info.exe_name = file.readLine();
         if(exe_info.exe_name == "") break;
@@ -148,7 +134,7 @@ void Widget::load_last_version(const QString& filename){
 }
 
 
-void Widget::save_last_version(const QString& filename){
+void Widget::saveLastVersion(const QString &filename){
     QFile file(filename);
     if(!file.open(QIODevice::WriteOnly | QIODevice::Text)){
         return;
@@ -195,37 +181,47 @@ void Widget::dropEvent(QDropEvent *event)
 {
     // Когда отпускаем файл в область приложения,
     // то забираем путь к файлу из MIME данных
-    //QString filePath = event->mimeData()->urls()[0].toLocalFile();
-    QString filePath = event->mimeData()->urls()[0].toLocalFile();
+    QString filePath;
+    if(!event->mimeData()->urls().isEmpty()){
+        filePath = event->mimeData()->urls()[0].toLocalFile();
+    }
+    else {
+        int ret = QMessageBox::critical(this, tr("Файловая ошибка"),
+                                        tr("Этот файл не поддерживается "
+                                           "данной платформой! \nПопробуйте другой"),
+                                        QMessageBox::Ok);
 
-    Widget::exe_info exe_info;
+        return;
+    }
+
+    Widget::exeInfo exe_info;
     exe_info.exe_path = filePath;
 
     QString fileName = QFileInfo(filePath).fileName();
     QString tmp = fileName.mid(0, fileName.size() - 4);
     exe_info.exe_name = tmp;
 
-    tmp = CURRENT_DIRECTORY(tmp) + QString(".png");
+    tmp = FinalFilePath(tmp) + QString(".png");
     exe_info.exe_icon = tmp;
 
-    m_GetIcon.setPATH(exe_info.exe_path);
-    m_GetIcon.setNAME(exe_info.exe_icon);
-    m_GetIcon.setRunnung(1);
+    QIcon icon;
+    QFileIconProvider fileiconpr;
+    icon = fileiconpr.icon(QFileInfo(filePath));
 
     m_exe_info.push_back(exe_info);
 
-    QPixmap pixmap(exe_info.exe_icon);
+    QPixmap pixmap = icon.pixmap(QSize(32,32));
+    pixmap.save(exe_info.exe_icon);
 
     // Добавляем элемент в список
     m_imagesModel->appendRow(new QStandardItem(QIcon(pixmap), exe_info.exe_name));
     update_list();
+    saveLastVersion(FinalFilePath("icons_info.iof"));
 }
 
 
 void Widget::closeEvent (QCloseEvent *event)
 {
-    m_GetIcon.setRunnung(0);
-    m_thread_0.terminate();
-    save_last_version(CURRENT_DIRECTORY("icons_info.iof"));
+    saveLastVersion(FinalFilePath("icons_info.iof"));
     event->accept();
 }

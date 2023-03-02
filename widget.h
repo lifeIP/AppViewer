@@ -2,6 +2,7 @@
 #define WIDGET_H
 
 #include <QWidget>
+
 #include <QPalette>
 #include <QDragEnterEvent>
 #include <QMimeData>
@@ -17,7 +18,6 @@
 #include <QList>
 #include <QThread>
 
-#include "pyapi.h"
 #include <vector>
 
 class Widget : public QWidget
@@ -27,33 +27,29 @@ class Widget : public QWidget
 public:
     explicit Widget(QWidget *parent = nullptr);
     ~Widget();
+
     // Метод события перетаскивания
     virtual void dragEnterEvent(QDragEnterEvent* event) override;
     // Метод события отпускания объекта с данными
     virtual void dropEvent(QDropEvent *event) override;
 
-    //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     /// Loads data when the program starts.
-    void load_last_version(const QString& filename);
+    void loadLastVersion(const QString& filename);
 
     /// Saves changes when data is modified.
-    void save_last_version(const QString& filename);
+    void saveLastVersion(const QString& filename);
 
-    struct exe_info{
+    struct exeInfo{
         QString exe_name;
         QString exe_path;
         QString exe_icon;
     };
-    //-------------------------------------------------------------------------------------------
+
 private slots:
-
     void closeEvent (QCloseEvent *event) override;
-
     bool eventFilter(QObject *obj, QEvent *event) override;
-
     void slotRemoveRecord();
     void slotEditRecord();
-
 
 private:
     void update_list();
@@ -63,9 +59,7 @@ private:
     QListView*              m_imagesListView;   // Список с изображениями
     QGridLayout*            m_gridLayout;       // Сетка для интерфейса
     QStandardItemModel*     m_imagesModel;      // Модель данных с изображениями
-    std::vector<exe_info>   m_exe_info;
-    QThread                 m_thread_0;
-    PyAPI                   m_GetIcon;
+    std::vector<exeInfo>    m_exe_info;
 };
 
 #endif // WIDGET_H
