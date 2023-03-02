@@ -34,15 +34,15 @@ public:
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     /// Loads data when the program starts.
-    void load_last_version(const std::string& filename);
+    void load_last_version(const QString& filename);
 
     /// Saves changes when data is modified.
-    void save_last_version(const std::string& filename);
+    void save_last_version(const QString& filename);
 
     struct exe_info{
-        std::string exe_name;
-        std::string exe_path;
-        std::string exe_icon;
+        QString exe_name;
+        QString exe_path;
+        QString exe_icon;
     };
     //-------------------------------------------------------------------------------------------
 private slots:
@@ -56,6 +56,7 @@ private slots:
 
 
 private:
+    void update_list();
 
     QMenuBar*               m_menu_bar;
     QPushButton*            m_push_button;

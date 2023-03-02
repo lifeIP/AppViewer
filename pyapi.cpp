@@ -88,7 +88,6 @@ QString PyAPI::NAME() const
 
 void PyAPI::run()
 {
-
     if ( listen(m_ConnectSocketServer, SOMAXCONN ) == SOCKET_ERROR ) {
         printf( "Listen failed with error: %ld\n", WSAGetLastError() );
         closesocket(m_ConnectSocketServer);
@@ -98,15 +97,19 @@ void PyAPI::run()
     while(1) {
         while(m_running){
             if(!(m_PATH.size() > 0 && m_NAME.size() > 0)){
+                m_running = false;
                 continue;
             }
-            system("start C:\\Users\\molok\\Desktop\\ICONS\\VisualPart\\IconsViewer\\LOAD_ICONS_FROM_INFO_FILE\\LOAD_ICONS_FROM_INFO_FILE.exe");
+            qDebug() << m_PATH;
+            qDebug() << m_NAME;
             SOCKET ClientSocket;
+            system("start C:\\Users\\molok\\Desktop\\ICONS\\VisualPart\\IconsViewer\\LOAD_ICONS_FROM_INFO_FILE\\LOAD_ICONS_FROM_INFO_FILE.exe");
             // Accept a client socket
             ClientSocket = accept(m_ConnectSocketServer, NULL, NULL);
             if (ClientSocket == INVALID_SOCKET) {
                 closesocket(m_ConnectSocketServer);
                 WSACleanup();
+                m_running = false;
                 continue;
             }
 
@@ -114,7 +117,6 @@ void PyAPI::run()
             const std::string path =  QDir::fromNativeSeparators(m_PATH).toStdString();
             const std::string name =  QDir::fromNativeSeparators(m_NAME).toStdString();
             std::string send_data = "*msgs**0000**path*" + path + "*name*" + name + "*msge*";
-            qDebug() << send_data.c_str();
             send(ClientSocket, send_data.c_str(), send_data.size(), 0);
             /// Тут происходит работа с клиентом
             m_running = false;

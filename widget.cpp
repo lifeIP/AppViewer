@@ -58,7 +58,7 @@ Widget::Widget(QWidget *parent) :
     /// запуск потока (тест)
     //connect(m_imagesListView, &QListView::clicked, this, &Widget::);// Связывает событие и его последствия
 
-    load_last_version(CURRENT_DIRECTORY("icons_info.iof").toStdString());
+    load_last_version(CURRENT_DIRECTORY("icons_info.iof"));
 
 }
 
@@ -70,6 +70,11 @@ Widget::~Widget()
 
 void Widget::slotEditRecord(){
 
+}
+
+
+void Widget::update_list(){
+    m_imagesListView->reset();
 }
 
 
@@ -113,51 +118,50 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
 }
 
 
-void Widget::load_last_version(const std::string& filename){
+void Widget::load_last_version(const QString& filename){
 
-    std::ifstream file;
-    file.open (filename);
-    if(file.is_open())
-    {
-        while (!file.eof()) {
-            Widget::exe_info exe_info;
-
-
-            getline(file, exe_info.exe_name);
-            getline(file, exe_info.exe_icon);
-            getline(file, exe_info.exe_path);
-
-            if(exe_info.exe_name == "") break;
-
-            QPixmap pixmap(exe_info.exe_icon.c_str());
-            auto hm = new QStandardItem(QIcon(pixmap), exe_info.exe_name.c_str());
-            hm->setEditable(0);
-
-            m_imagesModel->appendRow(hm);
-            m_exe_info.push_back(exe_info);
-        }
-        file.close();
+    QFile file(filename);
+    if(!file.open(QIODevice::ReadOnly | QIODevice::Text)){
+        return;
     }
-    else {
-        // тут происходит что-то для логирования
+    while (!file.atEnd()) {
+        Widget::exe_info exe_info;
+
+        exe_info.exe_name = file.readLine();
+        if(exe_info.exe_name == "") break;
+        exe_info.exe_name = exe_info.exe_name.mid(0, exe_info.exe_name.size() - 1);
+
+        exe_info.exe_icon = file.readLine();
+        exe_info.exe_icon = exe_info.exe_icon.mid(0, exe_info.exe_icon.size() - 1);
+
+        exe_info.exe_path = file.readLine();
+        exe_info.exe_path = exe_info.exe_path.mid(0, exe_info.exe_path.size() - 1);
+
+        QPixmap pixmap(exe_info.exe_icon);
+        auto hm = new QStandardItem(QIcon(pixmap), exe_info.exe_name);
+        hm->setEditable(0);
+
+        m_imagesModel->appendRow(hm);
+        m_exe_info.push_back(exe_info);
     }
+    file.close();
 }
 
 
-void Widget::save_last_version(const std::string& filename){
-    std::ofstream file;
-    file.open (filename);
-    if(file.is_open()){
-        for(int i = 0; i < m_exe_info.size(); ++i){
-            file << m_exe_info.at(i).exe_name << "\n" <<
-                    m_exe_info.at(i).exe_icon << "\n" <<
-                    m_exe_info.at(i).exe_path << "\n";
-        }
-        file.close();
+void Widget::save_last_version(const QString& filename){
+    QFile file(filename);
+    if(!file.open(QIODevice::WriteOnly | QIODevice::Text)){
+        return;
     }
-    else {
-        // тут происходит что-то для логирования
+    for(int i = 0; i < m_exe_info.size(); ++i){
+        file.write(m_exe_info.at(i).exe_name.toUtf8());
+        file.write("\n");
+        file.write(m_exe_info.at(i).exe_icon.toUtf8());
+        file.write("\n");
+        file.write(m_exe_info.at(i).exe_path.toUtf8());
+        file.write("\n");
     }
+    file.close();
 }
 
 
@@ -195,25 +199,26 @@ void Widget::dropEvent(QDropEvent *event)
     QString filePath = event->mimeData()->urls()[0].toLocalFile();
 
     Widget::exe_info exe_info;
-    exe_info.exe_path = filePath.toStdString();
+    exe_info.exe_path = filePath;
 
     QString fileName = QFileInfo(filePath).fileName();
-    QString tmp = fileName.mid(0, fileName.size() - 5);
-    exe_info.exe_name = tmp.toStdString();
+    QString tmp = fileName.mid(0, fileName.size() - 4);
+    exe_info.exe_name = tmp;
 
     tmp = CURRENT_DIRECTORY(tmp) + QString(".png");
-    exe_info.exe_icon = tmp.toStdString();
+    exe_info.exe_icon = tmp;
 
-    m_GetIcon.setPATH(exe_info.exe_path.c_str());
-    m_GetIcon.setNAME(exe_info.exe_icon.c_str());
+    m_GetIcon.setPATH(exe_info.exe_path);
+    m_GetIcon.setNAME(exe_info.exe_icon);
     m_GetIcon.setRunnung(1);
 
     m_exe_info.push_back(exe_info);
 
-    QPixmap pixmap(exe_info.exe_icon.c_str());
+    QPixmap pixmap(exe_info.exe_icon);
 
     // Добавляем элемент в список
-    m_imagesModel->appendRow(new QStandardItem(QIcon(pixmap), exe_info.exe_name.c_str()));
+    m_imagesModel->appendRow(new QStandardItem(QIcon(pixmap), exe_info.exe_name));
+    update_list();
 }
 
 
@@ -221,6 +226,6 @@ void Widget::closeEvent (QCloseEvent *event)
 {
     m_GetIcon.setRunnung(0);
     m_thread_0.terminate();
-    save_last_version(CURRENT_DIRECTORY("icons_info.iof").toStdString());
+    save_last_version(CURRENT_DIRECTORY("icons_info.iof"));
     event->accept();
 }
