@@ -17,8 +17,9 @@
 #include <QMenuBar>
 #include <QList>
 #include <QThread>
-
+#include <QPoint>
 #include <vector>
+#include "editwindow.h"
 
 class Widget : public QWidget
 {
@@ -50,7 +51,7 @@ private slots:
     bool eventFilter(QObject *obj, QEvent *event) override;
     void slotRemoveRecord();
     void slotEditRecord();
-
+    void slotButtonTriggered();
 private:
     void update_list();
 
@@ -60,6 +61,7 @@ private:
     QGridLayout*            m_gridLayout;       // Сетка для интерфейса
     QStandardItemModel*     m_imagesModel;      // Модель данных с изображениями
     std::vector<exeInfo>    m_exe_info;
+    EditWindow*             m_edit_window;
 };
 
 #endif // WIDGET_H

@@ -1,6 +1,7 @@
 #include "widget.h"
 #include "ui_widget.h"
 #include "constants.h"
+#include "editwindow.h"
 
 #include <QDebug>
 #include <QFileIconProvider>
@@ -23,9 +24,9 @@ Widget::Widget(QWidget *parent) :
     // Инициа лизация виджетов
     m_gridLayout = new QGridLayout(this);
     m_imagesListView = new QListView(this);
-    m_push_button = new QPushButton(this);
+    m_push_button = new QPushButton(QString("Открыть"), this);
     m_menu_bar = new QMenuBar(this);
-
+    m_edit_window = new EditWindow;
 
     // Настройка внешнего вида меню
     m_menu_bar->addMenu("Title");
@@ -44,6 +45,8 @@ Widget::Widget(QWidget *parent) :
     // Инициализируем разные события
     qApp->installEventFilter(this); // Запускаает фильтр событий, нужный для eventFilter
 
+    connect(m_push_button, SIGNAL(released()), this, SLOT(slotButtonTriggered()));
+
     //connect( drag, SIGNAL(destroyed()), this, SLOT(dragDestroyed()));
     loadLastVersion(FinalFilePath("icons_info.iof"));
 }
@@ -51,11 +54,6 @@ Widget::Widget(QWidget *parent) :
 
 Widget::~Widget()
 {
-}
-
-
-void Widget::slotEditRecord(){
-
 }
 
 
@@ -73,6 +71,9 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
         if (ev->buttons() & Qt::LeftButton)
         {
             qDebug()<< "double left clicked" << ev->pos();
+            if(m_imagesListView->indexAt(ev->pos()).row() == -1)
+                return QObject::eventFilter(obj, event);
+            qDebug()<<  m_imagesListView->indexAt(ev->pos()).row();
             qDebug()<<  m_imagesListView->indexAt(ev->pos()).data();
         }
     }
@@ -81,22 +82,29 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
         if (ev->buttons() & Qt::RightButton)
         {
             /* Создаем объект контекстного меню */
-            QMenu * menu = new QMenu(this);
+            QMenu menu(this);
             /* Создаём действия для контекстного меню */
-            QAction * editDevice = new QAction("Редактировать", this);
-            QAction * deleteDevice = new QAction("Удалить", this);
+            QAction editDevice("Редактировать", this);
+            QAction deleteDevice("Удалить", this);
 
             /* Устанавливаем действия в меню */
-            menu->addAction(editDevice);
-            menu->addAction(deleteDevice);
+            menu.addAction(&editDevice);
+            menu.addAction(&deleteDevice);
 
             // Связываем событие и его последствия
-            //connect(editDevice, SIGNAL(triggered()), this, SLOT(slotEditRecord()));
-            connect(deleteDevice, SIGNAL(triggered()), this, SLOT(slotRemoveRecord()));
+            connect(&editDevice, SIGNAL(triggered()), this, SLOT(slotEditRecord()));
+            connect(&deleteDevice, SIGNAL(triggered()), this, SLOT(slotRemoveRecord()));
+
+            if(m_imagesListView->indexAt(ev->pos()).row() == -1)
+                return QObject::eventFilter(obj, event);
 
             /* Вызываем контекстное меню */
-            menu->popup(m_imagesListView->viewport()->mapToGlobal(ev->pos()));
-            menu->exec();
+            m_edit_window->setRowId(m_imagesListView->indexAt(ev->pos()).row());
+            m_edit_window->render();
+
+            menu.popup(m_imagesListView->viewport()->mapToGlobal(ev->pos()));
+            menu.exec();
+
         }
     }
 
@@ -150,12 +158,34 @@ void Widget::saveLastVersion(const QString &filename){
     file.close();
 }
 
+void Widget::slotEditRecord(){
+    int row_id = m_imagesListView->selectionModel()->currentIndex().row();
+    if(row_id >= 0){
+        if (QMessageBox::warning(this, "Модифицировать запись?",
+                              "Вы уверены, что хотите модифицировать эту запись?",
+                              QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
+        {
+            m_edit_window->move(this->pos().rx() + 150, this->pos().ry() + 150);
+            m_edit_window->show();
+
+        }
+        else {
+            return;
+        }
+    }
+}
+
+void Widget::slotButtonTriggered()
+{
+    m_imagesListView->setIconSize(QSize(128, 128));
+}
 
 void Widget::slotRemoveRecord(){
     int row_id = m_imagesListView->selectionModel()->currentIndex().row();
     if(row_id >= 0){
+
         qDebug() << "row_id" << m_imagesListView->selectionModel()->currentIndex().row();
-        if (QMessageBox::warning(this, "Удаление записи",
+        if (QMessageBox::warning(this, "Удалить запись?",
                               "Вы уверены, что хотите удалить эту запись?",
                               QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
         {
@@ -189,7 +219,7 @@ void Widget::dropEvent(QDropEvent *event)
         int ret = QMessageBox::critical(this, tr("Файловая ошибка"),
                                         tr("Этот файл не поддерживается "
                                            "данной платформой! \nПопробуйте другой"),
-                                        QMessageBox::Ok);
+                                        QMessageBox::tr("Понял"));
 
         return;
     }
@@ -214,7 +244,11 @@ void Widget::dropEvent(QDropEvent *event)
     pixmap.save(exe_info.exe_icon);
 
     // Добавляем элемент в список
-    m_imagesModel->appendRow(new QStandardItem(QIcon(pixmap), exe_info.exe_name));
+    auto hm = new QStandardItem(QIcon(pixmap), exe_info.exe_name);
+    hm->setEditable(0);
+    m_imagesModel->appendRow(hm);
+
+
     update_list();
     saveLastVersion(FinalFilePath("icons_info.iof"));
 }
