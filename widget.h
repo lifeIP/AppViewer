@@ -62,6 +62,7 @@ private:
     QStandardItemModel*     m_imagesModel;      // Модель данных с изображениями
     std::vector<exeInfo>    m_exe_info;
     EditWindow*             m_edit_window;
+    QMenu*                  m_menu;
 };
 
 #endif // WIDGET_H

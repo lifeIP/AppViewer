@@ -13,7 +13,7 @@ class EditWindow : public QWidget
 {
     Q_OBJECT
 public:
-    explicit EditWindow(QWidget *parent = nullptr);
+    explicit EditWindow(QWidget *mainwin, QWidget *parent = nullptr);
 
     void setWinSpawnPoint(const QPoint& point);
     QPoint getWinSpawnPoint() const;
@@ -24,8 +24,8 @@ public:
 
 signals:
 
-public slots:
-
+private slots:
+    void closeEvent (QCloseEvent *event) override;
 
 private:
     QPushButton*    m_button_0;
@@ -34,6 +34,7 @@ private:
     QLabel*         m_label_1;
     QGridLayout*    m_grid_layout_0;
     int             m_row_id;
+    QWidget*        mainwin;
 };
 
 #endif // EDITWINDOW_H

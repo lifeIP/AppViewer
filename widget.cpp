@@ -26,7 +26,7 @@ Widget::Widget(QWidget *parent) :
     m_imagesListView = new QListView(this);
     m_push_button = new QPushButton(QString("Открыть"), this);
     m_menu_bar = new QMenuBar(this);
-    m_edit_window = new EditWindow;
+    m_edit_window = new EditWindow(this);
 
     // Настройка внешнего вида меню
     m_menu_bar->addMenu("Title");
@@ -42,6 +42,19 @@ Widget::Widget(QWidget *parent) :
     m_gridLayout->addWidget(m_imagesListView);
     m_gridLayout->addWidget(m_push_button);
 
+    /* Создаем объект контекстного меню */
+    m_menu = new QMenu(this);
+    /* Создаём действия для контекстного меню */
+    QAction* editDevice = new QAction("Редактировать", this);
+    QAction* deleteDevice = new QAction("Удалить", this);
+
+    /* Устанавливаем действия в меню */
+    m_menu->addAction(editDevice);
+    m_menu->addAction(deleteDevice);
+
+    // Связываем событие и его последствия
+    connect(editDevice, SIGNAL(triggered()), this, SLOT(slotEditRecord()));
+    connect(deleteDevice, SIGNAL(triggered()), this, SLOT(slotRemoveRecord()));
     // Инициализируем разные события
     qApp->installEventFilter(this); // Запускаает фильтр событий, нужный для eventFilter
 
@@ -79,35 +92,16 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
     }
     else if (obj == m_imagesListView->viewport() && event->type() == QEvent::MouseButtonPress) {
         QMouseEvent *ev = static_cast<QMouseEvent *>(event);
-        if (ev->buttons() & Qt::RightButton)
+        if ((ev->buttons() & Qt::RightButton)&& this->isEnabled())
         {
-            /* Создаем объект контекстного меню */
-            QMenu menu(this);
-            /* Создаём действия для контекстного меню */
-            QAction editDevice("Редактировать", this);
-            QAction deleteDevice("Удалить", this);
-
-            /* Устанавливаем действия в меню */
-            menu.addAction(&editDevice);
-            menu.addAction(&deleteDevice);
-
-            // Связываем событие и его последствия
-            connect(&editDevice, SIGNAL(triggered()), this, SLOT(slotEditRecord()));
-            connect(&deleteDevice, SIGNAL(triggered()), this, SLOT(slotRemoveRecord()));
-
             if(m_imagesListView->indexAt(ev->pos()).row() == -1)
                 return QObject::eventFilter(obj, event);
 
             /* Вызываем контекстное меню */
-            m_edit_window->setRowId(m_imagesListView->indexAt(ev->pos()).row());
-            m_edit_window->render();
-
-            menu.popup(m_imagesListView->viewport()->mapToGlobal(ev->pos()));
-            menu.exec();
-
+            m_menu->popup(m_imagesListView->viewport()->mapToGlobal(ev->pos()));
+            m_menu->exec();
         }
     }
-
     return QObject::eventFilter(obj, event);
 }
 
@@ -166,8 +160,9 @@ void Widget::slotEditRecord(){
                               QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
         {
             m_edit_window->move(this->pos().rx() + 150, this->pos().ry() + 150);
+            m_edit_window->setRowId(row_id);
+            m_edit_window->render();
             m_edit_window->show();
-
         }
         else {
             return;

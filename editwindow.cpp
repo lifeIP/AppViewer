@@ -5,14 +5,14 @@
 #include <QDebug>
 #include <QDir>
 
-EditWindow::EditWindow(QWidget *parent) : QWidget(parent)
+EditWindow::EditWindow(QWidget *mainwin, QWidget *parent) : QWidget(parent), mainwin(mainwin)
 {
     m_grid_layout_0 = new QGridLayout(this);
 
     m_label_1 = new QLabel("Text", this);
 
-    m_button_0 = new QPushButton("BT0", this);
-    m_button_1 = new QPushButton("BT1", this);
+    m_button_0 = new QPushButton("Изменить икону", this);
+    m_button_1 = new QPushButton("Изменить название", this);
 
     m_label_0 = new QLabel(this);
     setRowId(-1);
@@ -46,6 +46,8 @@ int EditWindow::getRowId() const
 
 void EditWindow::render()
 {
+    mainwin->setEnabled(0);
+
     if(m_row_id < 0){
         return;
     }
@@ -67,4 +69,9 @@ void EditWindow::render()
         }
         counter++;
     }
+}
+
+void EditWindow::closeEvent(QCloseEvent *event)
+{
+    mainwin->setEnabled(1);
 }
