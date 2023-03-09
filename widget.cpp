@@ -159,7 +159,7 @@ void Widget::slotEditRecord(){
                               "Вы уверены, что хотите модифицировать эту запись?",
                               QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
         {
-            m_edit_window->move(this->pos().rx() + 150, this->pos().ry() + 150);
+            m_edit_window->move(m_menu->pos().x(), m_menu->pos().y());
             m_edit_window->setRowId(row_id);
             m_edit_window->render();
             m_edit_window->show();
