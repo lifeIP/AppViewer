@@ -45,16 +45,21 @@ Widget::Widget(QWidget *parent) :
     /* Создаем объект контекстного меню */
     m_menu = new QMenu(this);
     /* Создаём действия для контекстного меню */
+    QAction* openDevice = new QAction("Открыть", this);
     QAction* editDevice = new QAction("Редактировать", this);
     QAction* deleteDevice = new QAction("Удалить", this);
 
     /* Устанавливаем действия в меню */
+    m_menu->addAction(openDevice);
     m_menu->addAction(editDevice);
     m_menu->addAction(deleteDevice);
 
     // Связываем событие и его последствия
+
+    connect(openDevice, SIGNAL(triggered()), this, SLOT(slotOpenRecord()));
     connect(editDevice, SIGNAL(triggered()), this, SLOT(slotEditRecord()));
     connect(deleteDevice, SIGNAL(triggered()), this, SLOT(slotRemoveRecord()));
+
     // Инициализируем разные события
     qApp->installEventFilter(this); // Запускаает фильтр событий, нужный для eventFilter
 
@@ -69,12 +74,6 @@ Widget::~Widget()
 {
 }
 
-
-void Widget::update_list(){
-    m_imagesListView->reset();
-}
-
-
 bool Widget::eventFilter(QObject *obj, QEvent *event)
 {
 
@@ -86,8 +85,7 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
             qDebug()<< "double left clicked" << ev->pos();
             if(m_imagesListView->indexAt(ev->pos()).row() == -1)
                 return QObject::eventFilter(obj, event);
-            qDebug()<<  m_imagesListView->indexAt(ev->pos()).row();
-            qDebug()<<  m_imagesListView->indexAt(ev->pos()).data();
+
         }
     }
     else if (obj == m_imagesListView->viewport() && event->type() == QEvent::MouseButtonPress) {
@@ -115,17 +113,16 @@ void Widget::loadLastVersion(const QString &filename){
     while (!file.atEnd()) {
         Widget::exeInfo exe_info;
 
-        exe_info.exe_name = file.readLine();
-        if(exe_info.exe_name == "") break;
-        exe_info.exe_name = exe_info.exe_name.mid(0, exe_info.exe_name.size() - 1);
+        exe_info.exe_name = file.readLine().trimmed();
+        if(exe_info.exe_name.isEmpty()) break;
 
-        exe_info.exe_icon = file.readLine();
-        exe_info.exe_icon = exe_info.exe_icon.mid(0, exe_info.exe_icon.size() - 1);
+        exe_info.exe_icon.setPath(file.readLine().trimmed());
+        if(exe_info.exe_icon.path().isEmpty()) break;
 
-        exe_info.exe_path = file.readLine();
-        exe_info.exe_path = exe_info.exe_path.mid(0, exe_info.exe_path.size() - 1);
+        exe_info.exe_path.setPath(file.readLine().trimmed());
+        if(exe_info.exe_path.path().isEmpty()) break;
 
-        QPixmap pixmap(exe_info.exe_icon);
+        QPixmap pixmap(exe_info.exe_icon.path());
         auto hm = new QStandardItem(QIcon(pixmap), exe_info.exe_name);
         hm->setEditable(0);
 
@@ -144,9 +141,9 @@ void Widget::saveLastVersion(const QString &filename){
     for(int i = 0; i < m_exe_info.size(); ++i){
         file.write(m_exe_info.at(i).exe_name.toUtf8());
         file.write("\n");
-        file.write(m_exe_info.at(i).exe_icon.toUtf8());
+        file.write(m_exe_info.at(i).exe_icon.path().toUtf8());
         file.write("\n");
-        file.write(m_exe_info.at(i).exe_path.toUtf8());
+        file.write(m_exe_info.at(i).exe_path.path().toUtf8());
         file.write("\n");
     }
     file.close();
@@ -177,21 +174,28 @@ void Widget::slotButtonTriggered()
 
 void Widget::slotRemoveRecord(){
     int row_id = m_imagesListView->selectionModel()->currentIndex().row();
-    if(row_id >= 0){
 
-        qDebug() << "row_id" << m_imagesListView->selectionModel()->currentIndex().row();
-        if (QMessageBox::warning(this, "Удалить запись?",
-                              "Вы уверены, что хотите удалить эту запись?",
-                              QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes)
-        {
-            m_exe_info.erase(m_exe_info.begin() + row_id);
-            qDebug() << "row_id_in" << m_imagesListView->selectionModel()->currentIndex().row();
-            m_imagesModel->removeRows(row_id, 1);
-        }
-        else {
-            return;
-        }
-    }
+    if(row_id < 0) return;
+    if (QMessageBox::warning(this, "Удалить запись?",
+                          "Вы уверены, что хотите удалить эту запись?",
+                          QMessageBox::Yes | QMessageBox::No) == QMessageBox::No)
+        return;
+
+    m_menu->hide();
+
+    m_exe_info.erase(m_exe_info.begin() + row_id);
+    m_imagesModel->removeRows(row_id, 1);
+}
+
+void Widget::slotOpenRecord()
+{
+    int row_id = m_imagesListView->selectionModel()->currentIndex().row();
+    if(row_id < 0) return;
+
+    QDir path = m_exe_info.at(row_id).exe_path;
+    QFileInfo fInfo(path.path());
+    qDebug() << fInfo.dir();
+    qDebug() << fInfo.suffix();
 }
 
 
@@ -207,44 +211,44 @@ void Widget::dropEvent(QDropEvent *event)
     // Когда отпускаем файл в область приложения,
     // то забираем путь к файлу из MIME данных
     QString filePath;
-    if(!event->mimeData()->urls().isEmpty()){
-        filePath = event->mimeData()->urls()[0].toLocalFile();
-    }
-    else {
-        int ret = QMessageBox::critical(this, tr("Файловая ошибка"),
-                                        tr("Этот файл не поддерживается "
-                                           "данной платформой! \nПопробуйте другой"),
-                                        QMessageBox::tr("Понял"));
-
+    if(event->mimeData()->urls().isEmpty()){
+        QMessageBox::critical(this, tr("Файловая ошибка"),
+                                    tr("Этот файл не поддерживается "
+                                    "данной платформой! \nПопробуйте другой"),
+                                    QMessageBox::tr("Понял"));
         return;
     }
+
+
+    filePath = event->mimeData()->urls()[0].toLocalFile();
 
     Widget::exeInfo exe_info;
     exe_info.exe_path = filePath;
 
-    QString fileName = QFileInfo(filePath).fileName();
-    QString tmp = fileName.mid(0, fileName.size() - 4);
-    exe_info.exe_name = tmp;
+    QFileInfo fileInfo = QFileInfo(filePath).fileName();
+    exe_info.exe_name = fileInfo.completeBaseName();
 
-    tmp = FinalFilePath(tmp) + QString(".png");
-    exe_info.exe_icon = tmp;
+    exe_info.exe_icon = FinalFilePath(exe_info.exe_name) + QString(".png");
 
+    //Получение иконки+++++++++++++++++++++++++++++++++++++++++++++++++++++
     QIcon icon;
     QFileIconProvider fileiconpr;
     icon = fileiconpr.icon(QFileInfo(filePath));
+    //Получение иконки-----------------------------------------------------
 
     m_exe_info.push_back(exe_info);
 
+    //Сохранение иконки в файл+++++++++++++++++++++++++++++++++++++++++++++
     QPixmap pixmap = icon.pixmap(QSize(32,32));
-    pixmap.save(exe_info.exe_icon);
+    pixmap.save(exe_info.exe_icon.path());
+    //Сохранение иконки в файл---------------------------------------------
 
-    // Добавляем элемент в список
+    // Добавление элемента в список++++++++++++++++++++++++++++++++++++++++
     auto hm = new QStandardItem(QIcon(pixmap), exe_info.exe_name);
     hm->setEditable(0);
     m_imagesModel->appendRow(hm);
+    // Добавление элемента в список----------------------------------------
 
-
-    update_list();
     saveLastVersion(FinalFilePath("icons_info.iof"));
 }
 

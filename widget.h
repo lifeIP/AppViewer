@@ -18,6 +18,7 @@
 #include <QList>
 #include <QThread>
 #include <QPoint>
+#include <QDir>
 #include <vector>
 #include "editwindow.h"
 
@@ -41,19 +42,20 @@ public:
     void saveLastVersion(const QString& filename);
 
     struct exeInfo{
-        QString exe_name;
-        QString exe_path;
-        QString exe_icon;
+        QString     exe_name;
+        QDir        exe_path;
+        QDir        exe_icon;
     };
 
 private slots:
     void closeEvent (QCloseEvent *event) override;
     bool eventFilter(QObject *obj, QEvent *event) override;
     void slotRemoveRecord();
+    void slotOpenRecord();
     void slotEditRecord();
+
     void slotButtonTriggered();
 private:
-    void update_list();
 
     QMenuBar*               m_menu_bar;
     QPushButton*            m_push_button;
