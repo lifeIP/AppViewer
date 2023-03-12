@@ -13,6 +13,9 @@
 #include <fstream>
 #include <string>
 #include <iostream>
+#include <qt_windows.h>
+#include <shobjidl.h>
+#include <map>
 
 Widget::Widget(QWidget *parent) :
     QWidget(parent)
@@ -187,15 +190,74 @@ void Widget::slotRemoveRecord(){
     m_imagesModel->removeRows(row_id, 1);
 }
 
+QString Widget::forWindowsGETPATH(LPCTSTR pszShortcut) //https://www.rsdn.org/article/winshell/shortcuts.xml
+{
+   IPersistFile* ppf;
+   IShellLink* pshl;
+   WIN32_FIND_DATA wfd;
+
+   // инициализируем COM-библиотеку
+   ::CoInitialize(nullptr);
+
+   // создаем COM-объект и получаем указатель на IPersistFile
+   ::CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER,
+      IID_IPersistFile, reinterpret_cast<void**>(&ppf));
+
+   // загружаем ярлык
+#if defined(_UNICODE)
+   ppf->Load(pszShortcut, STGM_READ);
+#else
+   LPWSTR pwszTemp = new WCHAR[_MAX_PATH];
+   mbstowcs(pwszTemp, pszShortcut, _MAX_PATH);
+   ppf->Load(pwszTemp, STGM_READ);
+   delete[] pwszTemp;
+#endif// получаем указатель на IShellLink
+   ppf->QueryInterface(IID_IShellLinkA, reinterpret_cast<void**>(&pshl));
+
+   // ищем объект, на который ссылается ярлык
+   pshl->Resolve(nullptr, SLR_ANY_MATCH | SLR_NO_UI);
+
+   // получаем имя объекта и выводим его на консоль
+   LPTSTR pszTarget = new TCHAR[_MAX_PATH];
+   pshl->GetPath(pszTarget, _MAX_PATH, &wfd, 0);
+   QString result = (LPSTR)pszTarget;
+   delete[] pszTarget;
+
+   // убираем за собой
+   pshl->Release();
+   ppf->Release();
+
+   // завершаем работу с COM-библиотекой
+   ::CoFreeUnusedLibraries();
+   ::CoUninitialize();
+   return result;
+}
+
 void Widget::slotOpenRecord()
 {
     int row_id = m_imagesListView->selectionModel()->currentIndex().row();
     if(row_id < 0) return;
 
     QDir path = m_exe_info.at(row_id).exe_path;
-    QFileInfo fInfo(path.path());
-    qDebug() << fInfo.dir();
-    qDebug() << fInfo.suffix();
+
+    // Открытие выбранного файла/программы/дирректории+++++++++++++++++++++++++++++++++++++++++++++++++
+    ///РЕАЛИЗАЦИЯ ДЛЯ WINDOWS+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    QString compath = "open ";
+    compath += forWindowsGETPATH((LPCTSTR)path.path().utf16());
+
+    ///РЕАЛИЗАЦИЯ ДЛЯ WINDOWS---------------------------------------------------------------------------------
+    // Открытие выбранного файла/программы/дирректории-------------------------------------------------
+
+
+    /*
+    QMessageBox msgBox;
+    int rslt = msgBox.warning(this, "Ошибка",
+                   "Возможно, ярлык повреждён.\n"
+                   "Попробуйте перейти в \"Расположение файла\" и\n"
+                   "передайте в программу exe файл.",
+                   "Понял",
+                   "Непонял");
+    qDebug() << rslt;*/
 }
 
 

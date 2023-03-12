@@ -20,6 +20,7 @@
 #include <QPoint>
 #include <QDir>
 #include <vector>
+#include <qt_windows.h>
 #include "editwindow.h"
 
 class Widget : public QWidget
@@ -56,6 +57,7 @@ private slots:
 
     void slotButtonTriggered();
 private:
+    QString forWindowsGETPATH(LPCTSTR pszShortcut);
 
     QMenuBar*               m_menu_bar;
     QPushButton*            m_push_button;
