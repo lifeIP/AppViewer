@@ -57,7 +57,6 @@ private slots:
 
     void slotButtonTriggered();
 private:
-    QString forWindowsGETPATH(LPCTSTR pszShortcut);
 
     QMenuBar*               m_menu_bar;
     QPushButton*            m_push_button;

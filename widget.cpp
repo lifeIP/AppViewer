@@ -2,16 +2,19 @@
 #include "ui_widget.h"
 #include "constants.h"
 #include "editwindow.h"
+#include "winapi.h"
 
 #include <QDebug>
 #include <QFileIconProvider>
 #include <QMessageBox>
 #include <QFileInfo>
 #include <QDir>
+#include <QProcess>
 
 #include <ctime>
 #include <fstream>
 #include <string>
+#include <cstdlib>
 #include <iostream>
 #include <qt_windows.h>
 #include <shobjidl.h>
@@ -85,10 +88,8 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
         QMouseEvent *ev = static_cast<QMouseEvent *>(event);
         if (ev->buttons() & Qt::LeftButton)
         {
-            qDebug()<< "double left clicked" << ev->pos();
-            if(m_imagesListView->indexAt(ev->pos()).row() == -1)
-                return QObject::eventFilter(obj, event);
-
+            slotOpenRecord();
+            return QObject::eventFilter(obj, event);
         }
     }
     else if (obj == m_imagesListView->viewport() && event->type() == QEvent::MouseButtonPress) {
@@ -172,7 +173,8 @@ void Widget::slotEditRecord(){
 
 void Widget::slotButtonTriggered()
 {
-    m_imagesListView->setIconSize(QSize(128, 128));
+    //m_imagesListView->setIconSize(QSize(128, 128));
+    slotOpenRecord();
 }
 
 void Widget::slotRemoveRecord(){
@@ -190,66 +192,25 @@ void Widget::slotRemoveRecord(){
     m_imagesModel->removeRows(row_id, 1);
 }
 
-QString Widget::forWindowsGETPATH(LPCTSTR pszShortcut) //https://www.rsdn.org/article/winshell/shortcuts.xml
-{
-   IPersistFile* ppf;
-   IShellLink* pshl;
-   WIN32_FIND_DATA wfd;
-
-   // инициализируем COM-библиотеку
-   ::CoInitialize(nullptr);
-
-   // создаем COM-объект и получаем указатель на IPersistFile
-   ::CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER,
-      IID_IPersistFile, reinterpret_cast<void**>(&ppf));
-
-   // загружаем ярлык
-#if defined(_UNICODE)
-   ppf->Load(pszShortcut, STGM_READ);
-#else
-   LPWSTR pwszTemp = new WCHAR[_MAX_PATH];
-   mbstowcs(pwszTemp, pszShortcut, _MAX_PATH);
-   ppf->Load(pwszTemp, STGM_READ);
-   delete[] pwszTemp;
-#endif// получаем указатель на IShellLink
-   ppf->QueryInterface(IID_IShellLinkA, reinterpret_cast<void**>(&pshl));
-
-   // ищем объект, на который ссылается ярлык
-   pshl->Resolve(nullptr, SLR_ANY_MATCH | SLR_NO_UI);
-
-   // получаем имя объекта и выводим его на консоль
-   LPTSTR pszTarget = new TCHAR[_MAX_PATH];
-   pshl->GetPath(pszTarget, _MAX_PATH, &wfd, 0);
-   QString result = (LPSTR)pszTarget;
-   delete[] pszTarget;
-
-   // убираем за собой
-   pshl->Release();
-   ppf->Release();
-
-   // завершаем работу с COM-библиотекой
-   ::CoFreeUnusedLibraries();
-   ::CoUninitialize();
-   return result;
-}
-
 void Widget::slotOpenRecord()
 {
     int row_id = m_imagesListView->selectionModel()->currentIndex().row();
     if(row_id < 0) return;
 
-    QDir path = m_exe_info.at(row_id).exe_path;
+    QString fileInfo(m_exe_info.at(row_id).exe_path.path());
 
     // Открытие выбранного файла/программы/дирректории+++++++++++++++++++++++++++++++++++++++++++++++++
-    ///РЕАЛИЗАЦИЯ ДЛЯ WINDOWS+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    QString compath = "open ";
-    compath += forWindowsGETPATH((LPCTSTR)path.path().utf16());
+    qDebug() << fileInfo;
 
-    ///РЕАЛИЗАЦИЯ ДЛЯ WINDOWS---------------------------------------------------------------------------------
+    //WinAPI link;
+    //qDebug() << "link argument: " << link.getLinkArgument(fileInfo);
+
+    HINSTANCE df = ShellExecuteW(NULL, L"open", (LPCTSTR)fileInfo.data(), NULL, NULL, SW_NORMAL);
+    if((INT_PTR)df > 32) return;
     // Открытие выбранного файла/программы/дирректории-------------------------------------------------
 
 
-    /*
+
     QMessageBox msgBox;
     int rslt = msgBox.warning(this, "Ошибка",
                    "Возможно, ярлык повреждён.\n"
@@ -257,7 +218,7 @@ void Widget::slotOpenRecord()
                    "передайте в программу exe файл.",
                    "Понял",
                    "Непонял");
-    qDebug() << rslt;*/
+    qDebug() << rslt;
 }
 
 

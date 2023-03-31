@@ -27,12 +27,14 @@ CONFIG += c++11
 SOURCES += \
         main.cpp \
         widget.cpp \
-    editwindow.cpp
+    editwindow.cpp \
+    winapi.cpp
 
 HEADERS += \
         widget.h \
     constants.h \
-    editwindow.h
+    editwindow.h \
+    winapi.h
 
 FORMS += \
         widget.ui
