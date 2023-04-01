@@ -28,13 +28,17 @@ SOURCES += \
         main.cpp \
         widget.cpp \
     editwindow.cpp \
-    winapi.cpp
+    winapi.cpp \
+    dbase.cpp
 
 HEADERS += \
         widget.h \
     constants.h \
     editwindow.h \
-    winapi.h
+    winapi.h \
+    dbase.h
+
+QT += sql
 
 FORMS += \
         widget.ui

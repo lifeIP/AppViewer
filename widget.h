@@ -20,8 +20,11 @@
 #include <QPoint>
 #include <QDir>
 #include <vector>
+
 #include <qt_windows.h>
 #include "editwindow.h"
+#include "constants.h"
+#include "dbase.h"
 
 class Widget : public QWidget
 {
@@ -36,17 +39,8 @@ public:
     // Метод события отпускания объекта с данными
     virtual void dropEvent(QDropEvent *event) override;
 
-    /// Loads data when the program starts.
-    void loadLastVersion(const QString& filename);
 
-    /// Saves changes when data is modified.
-    void saveLastVersion(const QString& filename);
-
-    struct exeInfo{
-        QString     exe_name;
-        QDir        exe_path;
-        QDir        exe_icon;
-    };
+    bool loadIndex();
 
 private slots:
     void closeEvent (QCloseEvent *event) override;
@@ -63,9 +57,10 @@ private:
     QListView*              m_imagesListView;   // Список с изображениями
     QGridLayout*            m_gridLayout;       // Сетка для интерфейса
     QStandardItemModel*     m_imagesModel;      // Модель данных с изображениями
-    std::vector<exeInfo>    m_exe_info;
+    std::vector<int>        m_index;
     EditWindow*             m_edit_window;
     QMenu*                  m_menu;
+    DBase*                  m_db;
 };
 
 #endif // WIDGET_H

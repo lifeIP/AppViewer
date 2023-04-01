@@ -11,6 +11,7 @@
 #include <QDir>
 #include <QProcess>
 
+#include "dbase.h"
 #include <ctime>
 #include <fstream>
 #include <string>
@@ -26,6 +27,12 @@ Widget::Widget(QWidget *parent) :
     setAcceptDrops(true);       // разрешаем события отпускания объектов данных
     setMinimumWidth(640);
     setMinimumHeight(480);
+
+
+
+    m_db = new DBase(RootDir + "db_name.sqlite");
+
+
 
     // Инициа лизация виджетов
     m_gridLayout = new QGridLayout(this);
@@ -72,7 +79,9 @@ Widget::Widget(QWidget *parent) :
     connect(m_push_button, SIGNAL(released()), this, SLOT(slotButtonTriggered()));
 
     //connect( drag, SIGNAL(destroyed()), this, SLOT(dragDestroyed()));
-    loadLastVersion(FinalFilePath("icons_info.iof"));
+    m_db->get_indexes(m_index);
+    loadIndex();
+
 }
 
 
@@ -88,6 +97,9 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
         QMouseEvent *ev = static_cast<QMouseEvent *>(event);
         if (ev->buttons() & Qt::LeftButton)
         {
+            if(m_imagesListView->indexAt(ev->pos()).row() == -1)
+                return QObject::eventFilter(obj, event);
+
             slotOpenRecord();
             return QObject::eventFilter(obj, event);
         }
@@ -107,51 +119,21 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
     return QObject::eventFilter(obj, event);
 }
 
-
+/*
 void Widget::loadLastVersion(const QString &filename){
 
-    QFile file(filename);
-    if(!file.open(QIODevice::ReadOnly | QIODevice::Text)){
-        return;
-    }
-    while (!file.atEnd()) {
-        Widget::exeInfo exe_info;
+    if(m_db->DBERROR < 0) this->close();
 
-        exe_info.exe_name = file.readLine().trimmed();
-        if(exe_info.exe_name.isEmpty()) break;
+    m_db->load_last_version(m_exe_info);
 
-        exe_info.exe_icon.setPath(file.readLine().trimmed());
-        if(exe_info.exe_icon.path().isEmpty()) break;
-
-        exe_info.exe_path.setPath(file.readLine().trimmed());
-        if(exe_info.exe_path.path().isEmpty()) break;
-
-        QPixmap pixmap(exe_info.exe_icon.path());
-        auto hm = new QStandardItem(QIcon(pixmap), exe_info.exe_name);
+    for(int i = 0; i < m_exe_info.size(); i++){
+        QPixmap pixmap(m_exe_info.at(i).exe_icon.path());
+        auto hm = new QStandardItem(QIcon(pixmap), m_exe_info.at(i).exe_name);
         hm->setEditable(0);
 
         m_imagesModel->appendRow(hm);
-        m_exe_info.push_back(exe_info);
     }
-    file.close();
-}
-
-
-void Widget::saveLastVersion(const QString &filename){
-    QFile file(filename);
-    if(!file.open(QIODevice::WriteOnly | QIODevice::Text)){
-        return;
-    }
-    for(int i = 0; i < m_exe_info.size(); ++i){
-        file.write(m_exe_info.at(i).exe_name.toUtf8());
-        file.write("\n");
-        file.write(m_exe_info.at(i).exe_icon.path().toUtf8());
-        file.write("\n");
-        file.write(m_exe_info.at(i).exe_path.path().toUtf8());
-        file.write("\n");
-    }
-    file.close();
-}
+}*/
 
 void Widget::slotEditRecord(){
     int row_id = m_imagesListView->selectionModel()->currentIndex().row();
@@ -188,16 +170,19 @@ void Widget::slotRemoveRecord(){
 
     m_menu->hide();
 
-    m_exe_info.erase(m_exe_info.begin() + row_id);
+    m_db->delete_app(m_index.at(row_id));
+    m_index.erase(m_index.begin() + row_id);
+
     m_imagesModel->removeRows(row_id, 1);
 }
 
 void Widget::slotOpenRecord()
 {
+    if(!this->isEnabled()) return;
     int row_id = m_imagesListView->selectionModel()->currentIndex().row();
     if(row_id < 0) return;
 
-    QString fileInfo(m_exe_info.at(row_id).exe_path.path());
+    QString fileInfo(m_db->get_app_path(m_index.at(row_id)));
 
     // Открытие выбранного файла/программы/дирректории+++++++++++++++++++++++++++++++++++++++++++++++++
     qDebug() << fileInfo;
@@ -233,7 +218,7 @@ void Widget::dropEvent(QDropEvent *event)
 {
     // Когда отпускаем файл в область приложения,
     // то забираем путь к файлу из MIME данных
-    QString filePath;
+    QDir filePath;
     if(event->mimeData()->urls().isEmpty()){
         QMessageBox::critical(this, tr("Файловая ошибка"),
                                     tr("Этот файл не поддерживается "
@@ -245,39 +230,51 @@ void Widget::dropEvent(QDropEvent *event)
 
     filePath = event->mimeData()->urls()[0].toLocalFile();
 
-    Widget::exeInfo exe_info;
-    exe_info.exe_path = filePath;
 
-    QFileInfo fileInfo = QFileInfo(filePath).fileName();
-    exe_info.exe_name = fileInfo.completeBaseName();
 
-    exe_info.exe_icon = FinalFilePath(exe_info.exe_name) + QString(".png");
+    QFileInfo fileInfo = QFileInfo(filePath.path()).fileName();
+    QString exe_name = fileInfo.completeBaseName();
+
+    QDir exe_icon = FinalFilePath(exe_name) + QString(".png");
 
     //Получение иконки+++++++++++++++++++++++++++++++++++++++++++++++++++++
     QIcon icon;
     QFileIconProvider fileiconpr;
-    icon = fileiconpr.icon(QFileInfo(filePath));
+    icon = fileiconpr.icon(QFileInfo(filePath.path()));
     //Получение иконки-----------------------------------------------------
 
-    m_exe_info.push_back(exe_info);
+    m_db->add_new_app(exe_name.toUtf8(), filePath.path(), exe_icon.path());
+    //m_db->get_indexes(m_index);
+
 
     //Сохранение иконки в файл+++++++++++++++++++++++++++++++++++++++++++++
     QPixmap pixmap = icon.pixmap(QSize(32,32));
-    pixmap.save(exe_info.exe_icon.path());
+    pixmap.save(exe_icon.path());
     //Сохранение иконки в файл---------------------------------------------
 
     // Добавление элемента в список++++++++++++++++++++++++++++++++++++++++
-    auto hm = new QStandardItem(QIcon(pixmap), exe_info.exe_name);
+    auto hm = new QStandardItem(QIcon(pixmap), exe_name);
     hm->setEditable(0);
     m_imagesModel->appendRow(hm);
     // Добавление элемента в список----------------------------------------
+}
 
-    saveLastVersion(FinalFilePath("icons_info.iof"));
+bool Widget::loadIndex()
+{
+    m_index.clear();
+    m_db->get_indexes(m_index);
+
+    for(int i = 0; i < m_index.size(); i++){
+        QPixmap pixmap(m_db->get_app_icon(m_index.at(i)));
+        auto hm = new QStandardItem(QIcon(pixmap), m_db->get_app_name(m_index.at(i)));
+        hm->setEditable(0);
+
+        m_imagesModel->appendRow(hm);
+    }
 }
 
 
 void Widget::closeEvent (QCloseEvent *event)
 {
-    saveLastVersion(FinalFilePath("icons_info.iof"));
     event->accept();
 }
