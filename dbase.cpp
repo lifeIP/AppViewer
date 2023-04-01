@@ -23,7 +23,8 @@ int DBase::add_new_app(const QString &name, const QString &path, const QString &
 
 bool DBase::delete_app(const int &id) const
 {
-    QSqlQuery query = sdb.exec(QString("DELETE FROM aapplications WHERE KEY = %1").arg(id));
+    QSqlQuery query = sdb.exec(QString("DELETE FROM applications WHERE KEY = %1").arg(id));
+    return 0;
 }
 
 QString DBase::get_app_name(const int &id) const

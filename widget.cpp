@@ -3,23 +3,8 @@
 #include "constants.h"
 #include "editwindow.h"
 #include "winapi.h"
-
-#include <QDebug>
-#include <QFileIconProvider>
-#include <QMessageBox>
-#include <QFileInfo>
-#include <QDir>
-#include <QProcess>
-
 #include "dbase.h"
-#include <ctime>
-#include <fstream>
-#include <string>
-#include <cstdlib>
-#include <iostream>
-#include <qt_windows.h>
-#include <shobjidl.h>
-#include <map>
+
 
 Widget::Widget(QWidget *parent) :
     QWidget(parent)
@@ -34,10 +19,9 @@ Widget::Widget(QWidget *parent) :
 
 
 
-    // Инициа лизация виджетов
+    // Инициализация виджетов
     m_gridLayout = new QGridLayout(this);
     m_imagesListView = new QListView(this);
-    m_push_button = new QPushButton(QString("Открыть"), this);
     m_menu_bar = new QMenuBar(this);
     m_edit_window = new EditWindow(this);
 
@@ -53,7 +37,6 @@ Widget::Widget(QWidget *parent) :
     // Помещаем в сетку виджеты
     m_gridLayout->addWidget(m_menu_bar);
     m_gridLayout->addWidget(m_imagesListView);
-    m_gridLayout->addWidget(m_push_button);
 
     /* Создаем объект контекстного меню */
     m_menu = new QMenu(this);
@@ -75,8 +58,6 @@ Widget::Widget(QWidget *parent) :
 
     // Инициализируем разные события
     qApp->installEventFilter(this); // Запускаает фильтр событий, нужный для eventFilter
-
-    connect(m_push_button, SIGNAL(released()), this, SLOT(slotButtonTriggered()));
 
     //connect( drag, SIGNAL(destroyed()), this, SLOT(dragDestroyed()));
     m_db->get_indexes(m_index);
@@ -119,22 +100,6 @@ bool Widget::eventFilter(QObject *obj, QEvent *event)
     return QObject::eventFilter(obj, event);
 }
 
-/*
-void Widget::loadLastVersion(const QString &filename){
-
-    if(m_db->DBERROR < 0) this->close();
-
-    m_db->load_last_version(m_exe_info);
-
-    for(int i = 0; i < m_exe_info.size(); i++){
-        QPixmap pixmap(m_exe_info.at(i).exe_icon.path());
-        auto hm = new QStandardItem(QIcon(pixmap), m_exe_info.at(i).exe_name);
-        hm->setEditable(0);
-
-        m_imagesModel->appendRow(hm);
-    }
-}*/
-
 void Widget::slotEditRecord(){
     int row_id = m_imagesListView->selectionModel()->currentIndex().row();
     if(row_id >= 0){
@@ -153,11 +118,7 @@ void Widget::slotEditRecord(){
     }
 }
 
-void Widget::slotButtonTriggered()
-{
-    //m_imagesListView->setIconSize(QSize(128, 128));
-    slotOpenRecord();
-}
+//m_imagesListView->setIconSize(QSize(128, 128));
 
 void Widget::slotRemoveRecord(){
     int row_id = m_imagesListView->selectionModel()->currentIndex().row();
@@ -185,16 +146,9 @@ void Widget::slotOpenRecord()
     QString fileInfo(m_db->get_app_path(m_index.at(row_id)));
 
     // Открытие выбранного файла/программы/дирректории+++++++++++++++++++++++++++++++++++++++++++++++++
-    qDebug() << fileInfo;
-
-    //WinAPI link;
-    //qDebug() << "link argument: " << link.getLinkArgument(fileInfo);
-
     HINSTANCE df = ShellExecuteW(NULL, L"open", (LPCTSTR)fileInfo.data(), NULL, NULL, SW_NORMAL);
     if((INT_PTR)df > 32) return;
     // Открытие выбранного файла/программы/дирректории-------------------------------------------------
-
-
 
     QMessageBox msgBox;
     int rslt = msgBox.warning(this, "Ошибка",
@@ -244,7 +198,8 @@ void Widget::dropEvent(QDropEvent *event)
     //Получение иконки-----------------------------------------------------
 
     m_db->add_new_app(exe_name.toUtf8(), filePath.path(), exe_icon.path());
-    //m_db->get_indexes(m_index);
+    m_index.clear();
+    m_db->get_indexes(m_index);
 
 
     //Сохранение иконки в файл+++++++++++++++++++++++++++++++++++++++++++++
