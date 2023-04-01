@@ -29,14 +29,16 @@ SOURCES += \
         widget.cpp \
     editwindow.cpp \
     winapi.cpp \
-    dbase.cpp
+    dbase.cpp \
+    topmenu.cpp
 
 HEADERS += \
         widget.h \
     constants.h \
     editwindow.h \
     winapi.h \
-    dbase.h
+    dbase.h \
+    topmenu.h
 
 QT += sql
 
@@ -46,8 +48,12 @@ FORMS += \
 LIBS += C:\qt\Qt5.12.2\Tools\mingw730_32\i686-w64-mingw32\lib\libws2_32.a
 LIBS += C:\qt\Qt5.12.2\Tools\mingw730_64\x86_64-w64-mingw32\lib\libws2_32.a
 LIBS += -lole32 -luuid
+RC_ICONS += "W:\My Projects\ICONS\02032023\IconsViewer\data\Dall-e Mini.ico"
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+RESOURCES += \
+    data.qrc

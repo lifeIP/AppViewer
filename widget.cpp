@@ -18,15 +18,13 @@ Widget::Widget(QWidget *parent) :
     m_db = new DBase(RootDir + "db_name.sqlite");
 
 
-
     // Инициализация виджетов
     m_gridLayout = new QGridLayout(this);
     m_imagesListView = new QListView(this);
-    m_menu_bar = new QMenuBar(this);
     m_edit_window = new EditWindow(this);
 
     // Настройка внешнего вида меню
-    m_menu_bar->addMenu("Title");
+    //m_menu_bar->addMenu("Title");
 
 
     // Создание модели данных для списка
@@ -35,7 +33,7 @@ Widget::Widget(QWidget *parent) :
 
 
     // Помещаем в сетку виджеты
-    m_gridLayout->addWidget(m_menu_bar);
+    //m_gridLayout->addWidget(m_menu_bar);
     m_gridLayout->addWidget(m_imagesListView);
 
     /* Создаем объект контекстного меню */

@@ -53,7 +53,6 @@ private slots:
 
 private:
 
-    QMenuBar*               m_menu_bar;
     QListView*              m_imagesListView;
     QGridLayout*            m_gridLayout;
     QStandardItemModel*     m_imagesModel;

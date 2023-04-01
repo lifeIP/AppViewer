@@ -3,7 +3,7 @@
 #include <QString>
 #include <QDir>
 
-#define RootDir (QString("W:\\My Projects\\ICONS\\ICONS\\test_\\"))
+#define RootDir (QString(QDir::currentPath() + "/data/"))
 #define FinalFilePath(fileName) (RootDir + QString(fileName))
 
 #endif // CONSTANTS_H
