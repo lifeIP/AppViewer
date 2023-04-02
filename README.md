@@ -5,4 +5,12 @@
 И вот, эта программа специально предназначена для устранения данного чувства.
 Она поможет с навигацией и поиском программ.
 
-<img src="data/Dall-e Mini.ico" alt="альтернативный текст">
+<p class="aligncenter">
+    <img src="data/Dall-e Mini.ico">
+</p>
+
+<style>
+.aligncenter {
+    text-align: center;
+}
+</style>
