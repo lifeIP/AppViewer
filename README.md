@@ -9,8 +9,4 @@
     <img src="data/Dall-e Mini.ico">
 </p>
 
-<style>
-.aligncenter {
-    text-align: center;
-}
-</style>
+[![Ashutosh's github activity graph](https://activity-graph.herokuapp.com/graph?username=Ashutosh00710)](https://github.com/ashutosh00710/github-readme-activity-graph)
